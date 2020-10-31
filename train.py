@@ -43,7 +43,7 @@ def eval(model, loss, dataloader, device, verbose):
             average_loss, correct1, len(dataloader.dataset), accuracy1))
     return average_loss, accuracy1, accuracy5
 
-def train_eval_loop(model, loss, optimizer, scheduler, train_loader, test_loader, device, epochs, verbose, args=args):
+def train_eval_loop(model, loss, optimizer, scheduler, train_loader, test_loader, device, epochs, verbose, args):
     if args.compute_sv:
         print('[*] Will compute singular values throught training.')
         size_hook = sv_utils.get_hook(model, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d))
