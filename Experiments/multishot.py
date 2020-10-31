@@ -54,7 +54,7 @@ def run(args):
 
                 # Pre Train Model
                 train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
-                                test_loader, device, args.pre_epochs, args.verbose)
+                                test_loader, device, args.pre_epochs, args.verbose, args)
 
                 # Prune Model
                 pruner = load.pruner(args.pruner)(generator.masked_parameters(model, args.prune_bias, args.prune_batchnorm, args.prune_residual))
@@ -80,7 +80,7 @@ def run(args):
                                            lambda p: generator.prunable(p, args.prune_batchnorm, args.prune_residual))
             # Train Model
             post_result = train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
-                                          test_loader, device, args.post_epochs, args.verbose)
+                                          test_loader, device, args.post_epochs, args.verbose, args)
             
             # Save Data
             post_result.to_pickle("{}/post-train-{}-{}-{}.pkl".format(args.result_dir, args.pruner, str(compression),  str(level)))
