@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import sv_utils
+import torch.nn as nn
 
 def train(model, loss, optimizer, dataloader, device, epoch, verbose, log_interval=10):
     model.train()
