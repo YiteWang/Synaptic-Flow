@@ -4,7 +4,6 @@ import numpy as np
 from tqdm import tqdm
 import sv_utils
 import torch.nn as nn
-import os
 
 def train(model, loss, optimizer, dataloader, device, epoch, verbose, log_interval=10):
     model.train()
@@ -46,30 +45,35 @@ def eval(model, loss, dataloader, device, verbose):
     return average_loss, accuracy1, accuracy5
 
 def train_eval_loop(model, loss, optimizer, scheduler, train_loader, test_loader, device, epochs, verbose, args):
+    if args.compute_sv:
+        print('[*] Will compute singular values throught training.')
+        size_hook = sv_utils.get_hook(model, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d))
+        sv_utils.run_once(train_loader, model)
+        sv_utils.detach_hook([size_hook])
+        training_sv = []
+        training_sv_avg = []
+        training_sv_std = []
+        sv, sv_avg, sv_std = sv_utils.get_sv(model, size_hook)
+        training_sv.append(sv)
+        training_sv_avg.append(sv_avg)
+        training_sv_std.append(sv_std)
 
     test_loss, accuracy1, accuracy5 = eval(model, loss, test_loader, device, verbose)
     rows = [[np.nan, test_loss, accuracy1, accuracy5]]
-    training_sv = []
-    training_sv_avg = []
-    training_sv_std = []
     for epoch in tqdm(range(epochs)):
-        # sv, sv_avg, sv_std = sv_utils.get_sv(model, size_hook)
-        # training_sv.append(sv)
-        # training_sv_avg.append(sv_avg)
-        # training_sv_std.append(sv_std)
         train_loss = train(model, loss, optimizer, train_loader, device, epoch, verbose)
         test_loss, accuracy1, accuracy5 = eval(model, loss, test_loader, device, verbose)
         row = [train_loss, test_loss, accuracy1, accuracy5]
         scheduler.step()
         rows.append(row)
-        # if args.compute_sv and epoch % args.save_every == 0:
-        #     sv, sv_avg, sv_std = sv_utils.get_sv(model, size_hook)
-        #     training_sv.append(sv)
-        #     training_sv_avg.append(sv_avg)
-        #     training_sv_std.append(sv_std)
-        #     np.save(os.path.join(args.result_dir, 'sv.npy'), training_sv)
-        #     np.save(os.path.join(args.result_dir, 'sv_avg.npy'), training_sv_avg)
-        #     np.save(os.path.join(args.result_dir, 'sv_std.npy'), training_sv_std)
+        if args.compute_sv and epoch % args.save_every == 0:
+            sv, sv_avg, sv_std = sv_utils.get_sv(model, size_hook)
+            training_sv.append(sv)
+            training_sv_avg.append(sv_avg)
+            training_sv_std.append(sv_std)
+            np.save(os.path.join(args.result_dir, 'sv.npy'), training_sv)
+            np.save(os.path.join(args.result_dir, 'sv_avg.npy'), training_sv_avg)
+            np.save(os.path.join(args.result_dir, 'sv_std.npy'), training_sv_std)
 
     columns = ['train_loss', 'test_loss', 'top1_accuracy', 'top5_accuracy']
     return pd.DataFrame(rows, columns=columns)
