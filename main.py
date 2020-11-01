@@ -105,13 +105,6 @@ if __name__ == '__main__':
                         help='random seed (default: 1)')
     parser.add_argument('--verbose', action='store_true',
                         help='print statistics during training and testing')
-
-    ## Additional arguments from Yite
-    parser.add_argument('--compute_sv', action='store_true',
-                        help='if compute singular values during training.')
-    parser.add_argument('--save-every', dest='save_every',
-                    help='Saves checkpoints at every specified number of epochs',
-                    type=int, default=10)
     args = parser.parse_args()
 
 
