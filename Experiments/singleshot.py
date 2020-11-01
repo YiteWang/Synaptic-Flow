@@ -32,22 +32,22 @@ def run(args):
     optimizer = opt_class(generator.parameters(model), lr=args.lr, weight_decay=args.weight_decay, **opt_kwargs)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.lr_drops, gamma=args.lr_drop_rate)
 
-    # if args.compute_sv:
-    #     print('[*] Will compute singular values throught training.')
-    #     size_hook = sv_utils.get_hook(model, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d))
-    #     sv_utils.run_once(train_loader, model)
-    #     sv_utils.detach_hook([size_hook])
+    if args.compute_sv:
+        print('[*] Will compute singular values throught training.')
+        size_hook = sv_utils.get_hook(model, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d))
+        sv_utils.run_once(train_loader, model)
+        sv_utils.detach_hook([size_hook])
 
     ## Pre-Train ##
     print('Pre-Train for {} epochs.'.format(args.pre_epochs))
     pre_result = train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
-                                 test_loader, device, args.pre_epochs, args.verbose)
+                                 test_loader, device, args.pre_epochs, args.verbose, args, size_hook)
 
 
     ## Prune ##
     print('Pruning with {} for {} epochs.'.format(args.pruner, args.prune_epochs))
     pruner = load.pruner(args.pruner)(generator.masked_parameters(model, args.prune_bias, args.prune_batchnorm, args.prune_residual))
-    sparsity = 10**(-float(args.compression))
+    sparsity = (0.8)**(float(args.compression))
     prune_loop(model, loss, pruner, prune_loader, device, sparsity, 
                args.compression_schedule, args.mask_scope, args.prune_epochs, args.reinitialize, args.prune_train_mode, args.shuffle)
 
@@ -55,7 +55,7 @@ def run(args):
     ## Post-Train ##
     print('Post-Training for {} epochs.'.format(args.post_epochs))
     post_result = train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
-                                  test_loader, device, args.post_epochs, args.verbose) 
+                                  test_loader, device, args.post_epochs, args.verbose, args, size_hook) 
 
     ## Display Results ##
     frames = [pre_result.head(1), pre_result.tail(1), post_result.head(1), post_result.tail(1)]
