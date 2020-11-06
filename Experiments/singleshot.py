@@ -23,6 +23,9 @@ def run(args):
 
     ## Model, Loss, Optimizer ##
     print('Creating {}-{} model.'.format(args.model_class, args.model))
+    # if args.model == 'apolo110':
+    #     model = load.model(args.model, args.model_class)(depth=110, num_classes=num_classes).to(device)
+    # else:
     model = load.model(args.model, args.model_class)(input_shape, 
                                                      num_classes, 
                                                      args.dense_classifier, 

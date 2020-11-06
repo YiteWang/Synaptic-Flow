@@ -9,6 +9,7 @@ from Models import tinyimagenet_vgg
 from Models import tinyimagenet_resnet
 from Models import imagenet_vgg
 from Models import imagenet_resnet
+from Models import apolo_resnet
 from Pruners import pruners
 from Utils import custom_datasets
 
@@ -136,6 +137,7 @@ def model(model_architecture, model_class):
         'wide-resnet50' : tinyimagenet_resnet.wide_resnet50,
         'wide-resnet101' : tinyimagenet_resnet.wide_resnet101,
         'wide-resnet152' : tinyimagenet_resnet.wide_resnet152,
+        'apolo110' : apolo_resnet.ResNet,
     }
     imagenet_models = {
         'vgg11' : imagenet_vgg.vgg11,
