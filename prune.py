@@ -30,6 +30,9 @@ def prune_loop(model, loss, pruner, dataloader, device, sparsity,
 
     # Confirm sparsity level
     remaining_params, total_params = pruner.stats()
+    # print('remain parameters: {} '.format(remaining_params))
+    # print('total parameters: {} '.format(total_params))
+    # print('supposed parameters: {} '.format(total_params*sparsity))
     if np.abs(remaining_params - total_params*sparsity) >= 5:
         print("ERROR: {} prunable parameters remaining, expected {}".format(remaining_params, total_params*sparsity))
         quit()

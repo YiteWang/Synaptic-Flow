@@ -29,11 +29,34 @@ def run(args):
     model = load.model(args.model, args.model_class)(input_shape, 
                                                      num_classes, 
                                                      args.dense_classifier, 
-                                                     args.pretrained).to(device)
+                                                     args.pretrained).to(device).double()
+
     loss = nn.CrossEntropyLoss()
+
+    ## Pre-Train ##
+    # print('Pre-Train for {} epochs.'.format(args.pre_epochs))
+    # pre_result = train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
+    #                              test_loader, device, args.pre_epochs, args.verbose, args, size_hook)
+
+
+    ## Prune ##
+    print('Pruning with {} for {} epochs.'.format(args.pruner, args.prune_epochs))
+    pruner = load.pruner(args.pruner)(generator.masked_parameters(model, args.prune_bias, args.prune_batchnorm, args.prune_residual))
+    sparsity = (0.8)**(float(args.compression))
+    print('Sparsity is: {}'.format(sparsity))
+    prune_loop(model, loss, pruner, prune_loader, device, sparsity, 
+               args.compression_schedule, args.mask_scope, args.prune_epochs, args.reinitialize, args.prune_train_mode, args.shuffle)
+    
+    model.float()
+    
     opt_class, opt_kwargs = load.optimizer(args.optimizer)
     optimizer = opt_class(generator.parameters(model), lr=args.lr, weight_decay=args.weight_decay, **opt_kwargs)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.lr_drops, gamma=args.lr_drop_rate)
+
+    prune_result = metrics.summary(model, 
+                                   pruner.scores,
+                                   metrics.flop(model, input_shape, device),
+                                   lambda p: generator.prunable(p, args.prune_batchnorm, args.prune_residual))
 
     if args.compute_sv:
         print('[*] Will compute singular values throught training.')
@@ -41,18 +64,14 @@ def run(args):
         sv_utils.run_once(train_loader, model)
         sv_utils.detach_hook([size_hook])
 
-    ## Pre-Train ##
-    print('Pre-Train for {} epochs.'.format(args.pre_epochs))
-    pre_result = train_eval_loop(model, loss, optimizer, scheduler, train_loader, 
-                                 test_loader, device, args.pre_epochs, args.verbose, args, size_hook)
+    total_params = int((prune_result['sparsity'] * prune_result['size']).sum())
+    possible_params = prune_result['size'].sum()
+    total_flops = int((prune_result['sparsity'] * prune_result['flops']).sum())
+    possible_flops = prune_result['flops'].sum()
 
-
-    ## Prune ##
-    print('Pruning with {} for {} epochs.'.format(args.pruner, args.prune_epochs))
-    pruner = load.pruner(args.pruner)(generator.masked_parameters(model, args.prune_bias, args.prune_batchnorm, args.prune_residual))
-    sparsity = (0.8)**(float(args.compression))
-    prune_loop(model, loss, pruner, prune_loader, device, sparsity, 
-               args.compression_schedule, args.mask_scope, args.prune_epochs, args.reinitialize, args.prune_train_mode, args.shuffle)
+    print("Prune results:\n", prune_result)
+    print("Parameter Sparsity: {}/{} ({:.4f})".format(total_params, possible_params, total_params / possible_params))
+    print("FLOP Sparsity: {}/{} ({:.4f})".format(total_flops, possible_flops, total_flops / possible_flops))
 
     
     ## Post-Train ##
