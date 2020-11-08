@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import torch
 import numpy as np
+import torch.nn as nn
 
 def prune_loop(model, loss, pruner, dataloader, device, sparsity, 
                schedule, scope, epochs, reinitialize=False, train_mode=False, shuffle=False):
@@ -28,6 +29,10 @@ def prune_loop(model, loss, pruner, dataloader, device, sparsity,
     if shuffle:
         pruner.shuffle()
 
+    for i in model.modules():
+        if isinstance(i, nn.BatchNorm2d):
+            i.reset_running_stats()
+            
     # Confirm sparsity level
     remaining_params, total_params = pruner.stats()
     # print('remain parameters: {} '.format(remaining_params))

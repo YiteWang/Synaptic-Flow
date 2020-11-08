@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import torch.backends.cudnn as cudnn
 import torch
 import torch.nn as nn
 from Utils import load
@@ -12,6 +13,7 @@ import sv_utils
 def run(args):
     ## Random Seed and Device ##
     torch.manual_seed(args.seed)
+    cudnn.benchmark = True
     device = load.device(args.gpu)
 
     ## Data ##
