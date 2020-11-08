@@ -58,6 +58,8 @@ def run(args):
                                    metrics.flop(model, input_shape, device),
                                    lambda p: generator.prunable(p, args.prune_batchnorm, args.prune_residual))
 
+    size_hook = None
+
     if args.compute_sv:
         print('[*] Will compute singular values throught training.')
         size_hook = sv_utils.get_hook(model, (nn.Linear, nn.Conv2d, nn.ConvTranspose2d))
